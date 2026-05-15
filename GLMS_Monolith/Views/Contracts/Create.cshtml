@@ -1,0 +1,90 @@
+@model GLMS_Monolith.Models.Contract
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>Contract</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="ClientId" class="control-label"></label>
+                <input asp-for="ClientId" class="form-control" />
+                <span asp-validation-for="ClientId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Client" class="control-label"></label>
+                <input asp-for="Client" class="form-control" />
+                <span asp-validation-for="Client" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="StartDate" class="control-label"></label>
+                <input asp-for="StartDate" class="form-control" />
+                <span asp-validation-for="StartDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="EndDate" class="control-label"></label>
+                <input asp-for="EndDate" class="form-control" />
+                <span asp-validation-for="EndDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Status" class="control-label"></label>
+                <input asp-for="Status" class="form-control" />
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ServiceLevel" class="control-label"></label>
+                <input asp-for="ServiceLevel" class="form-control" />
+                <span asp-validation-for="ServiceLevel" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="SignedAgreementFileName" class="control-label"></label>
+                <input asp-for="SignedAgreementFileName" class="form-control" />
+                <span asp-validation-for="SignedAgreementFileName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="SignedAgreementStoredPath" class="control-label"></label>
+                <input asp-for="SignedAgreementStoredPath" class="form-control" />
+                <span asp-validation-for="SignedAgreementStoredPath" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="SignedAgreementContentType" class="control-label"></label>
+                <input asp-for="SignedAgreementContentType" class="form-control" />
+                <span asp-validation-for="SignedAgreementContentType" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="SignedAgreementUploadedAt" class="control-label"></label>
+                <input asp-for="SignedAgreementUploadedAt" class="form-control" />
+                <span asp-validation-for="SignedAgreementUploadedAt" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ServiceRequests" class="control-label"></label>
+                <input asp-for="ServiceRequests" class="form-control" />
+                <span asp-validation-for="ServiceRequests" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
