@@ -1,150 +1,179 @@
-
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GLMS_Monolith.Models;
 using GLMS_Monolith.Data;
+using GLMS_Monolith.Models;
+using GLMS_Monolith.Models.Enums;
+using GLMS_Monolith.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 public class ServiceRequestsController : Controller
 {
     private readonly GlmsDbContext _context;
+    private readonly IContractWorkflowService _workflowService;
 
-    public ServiceRequestsController(GlmsDbContext context)
+    public ServiceRequestsController(GlmsDbContext context, IContractWorkflowService workflowService)
     {
         _context = context;
+        _workflowService = workflowService;
     }
 
-    // GET: SERVICEREQUESTS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
-        return View(await _context.ServiceRequests.ToListAsync());
+        var items = await _context.ServiceRequests
+            .Include(sr => sr.Contract)
+            .ThenInclude(c => c.Client)
+            .AsNoTracking()
+            .OrderByDescending(sr => sr.CreatedAt)
+            .ToListAsync();
+
+        return View(items);
     }
 
-    // GET: SERVICEREQUESTS/Details/5
     public async Task<IActionResult> Details(int? id)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
+        if (id == null) return NotFound();
 
-        var servicerequest = await _context.ServiceRequests
+        var item = await _context.ServiceRequests
+            .Include(sr => sr.Contract)
+            .ThenInclude(c => c.Client)
+            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id);
-        if (servicerequest == null)
-        {
-            return NotFound();
-        }
 
-        return View(servicerequest);
+        if (item == null) return NotFound();
+
+        return View(item);
     }
 
-    // GET: SERVICEREQUESTS/Create
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        return View();
+        await PopulateContractDropdownAsync();
+        return View(new ServiceRequest { Status = ServiceRequestStatus.New });
     }
 
-    // POST: SERVICEREQUESTS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,ContractId,Contract,Description,CostUsd,CostZar,ExchangeRateUsed,Status,CreatedAt")] ServiceRequest servicerequest)
+    public async Task<IActionResult> Create([Bind("ContractId,Description,CostUsd,Status")] ServiceRequest input)
     {
-        if (ModelState.IsValid)
+        var contract = await _context.Contracts
+            .Include(c => c.Client)
+            .FirstOrDefaultAsync(c => c.Id == input.ContractId);
+
+        if (contract == null)
         {
-            _context.Add(servicerequest);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            ModelState.AddModelError(nameof(input.ContractId), "Selected contract was not found.");
         }
-        return View(servicerequest);
+        else if (!_workflowService.CanCreateServiceRequest(contract, out var reason))
+        {
+            ModelState.AddModelError(nameof(input.ContractId), reason);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateContractDropdownAsync(input.ContractId);
+            return View(input);
+        }
+
+        // Placeholder until FX API step:
+        input.CostZar = 0;
+        input.ExchangeRateUsed = 0;
+        input.CreatedAt = DateTime.UtcNow;
+
+        _context.ServiceRequests.Add(input);
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
     }
 
-    // GET: SERVICEREQUESTS/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
+        if (id == null) return NotFound();
 
-        var servicerequest = await _context.ServiceRequests.FindAsync(id);
-        if (servicerequest == null)
-        {
-            return NotFound();
-        }
-        return View(servicerequest);
+        var item = await _context.ServiceRequests.FindAsync(id);
+        if (item == null) return NotFound();
+
+        await PopulateContractDropdownAsync(item.ContractId);
+        return View(item);
     }
 
-    // POST: SERVICEREQUESTS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,ContractId,Contract,Description,CostUsd,CostZar,ExchangeRateUsed,Status,CreatedAt")] ServiceRequest servicerequest)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,ContractId,Description,CostUsd,Status")] ServiceRequest input)
     {
-        if (id != servicerequest.Id)
+        if (id != input.Id) return NotFound();
+
+        var existing = await _context.ServiceRequests.FindAsync(id);
+        if (existing == null) return NotFound();
+
+        var contract = await _context.Contracts.FirstOrDefaultAsync(c => c.Id == input.ContractId);
+        if (contract == null)
         {
-            return NotFound();
+            ModelState.AddModelError(nameof(input.ContractId), "Selected contract was not found.");
+        }
+        else if (!_workflowService.CanCreateServiceRequest(contract, out var reason))
+        {
+            ModelState.AddModelError(nameof(input.ContractId), reason);
         }
 
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
-            try
-            {
-                _context.Update(servicerequest);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ServiceRequestExists(servicerequest.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-            return RedirectToAction(nameof(Index));
-        }
-        return View(servicerequest);
-    }
-
-    // GET: SERVICEREQUESTS/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
+            await PopulateContractDropdownAsync(input.ContractId);
+            existing.ContractId = input.ContractId;
+            existing.Description = input.Description;
+            existing.CostUsd = input.CostUsd;
+            existing.Status = input.Status;
+            return View(existing);
         }
 
-        var servicerequest = await _context.ServiceRequests
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (servicerequest == null)
-        {
-            return NotFound();
-        }
-
-        return View(servicerequest);
-    }
-
-    // POST: SERVICEREQUESTS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? id)
-    {
-        var servicerequest = await _context.ServiceRequests.FindAsync(id);
-        if (servicerequest != null)
-        {
-            _context.ServiceRequests.Remove(servicerequest);
-        }
+        existing.ContractId = input.ContractId;
+        existing.Description = input.Description;
+        existing.CostUsd = input.CostUsd;
+        existing.Status = input.Status;
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
 
-    private bool ServiceRequestExists(int? id)
+    public async Task<IActionResult> Delete(int? id)
     {
-        return _context.ServiceRequests.Any(e => e.Id == id);
+        if (id == null) return NotFound();
+
+        var item = await _context.ServiceRequests
+            .Include(sr => sr.Contract)
+            .ThenInclude(c => c.Client)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (item == null) return NotFound();
+
+        return View(item);
+    }
+
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var item = await _context.ServiceRequests.FindAsync(id);
+        if (item != null)
+        {
+            _context.ServiceRequests.Remove(item);
+            await _context.SaveChangesAsync();
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task PopulateContractDropdownAsync(object? selectedContract = null)
+    {
+        var contracts = await _context.Contracts
+            .Include(c => c.Client)
+            .AsNoTracking()
+            .OrderByDescending(c => c.Id)
+            .Select(c => new
+            {
+                c.Id,
+                Label = $"#{c.Id} - {c.Status} - {(c.Client != null ? c.Client.Name : "Client")}"
+            })
+            .ToListAsync();
+
+        ViewData["ContractId"] = new SelectList(contracts, "Id", "Label", selectedContract);
     }
 }

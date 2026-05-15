@@ -16,14 +16,60 @@ public class ContractsController : Controller
         _fileStorage = fileStorage;
     }
 
-    // GET: Contracts
-    public async Task<IActionResult> Index()
+    private static readonly string[] AllowedServiceLevels =
+{
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Enterprise"
+};
+
+    private void PopulateServiceLevelOptions(string? selected = null)
     {
-        var contracts = await _context.Contracts
+        ViewBag.ServiceLevels = new SelectList(AllowedServiceLevels, selected);
+    }
+
+    private bool IsValidServiceLevel(string? level)
+    {
+        return !string.IsNullOrWhiteSpace(level)
+            && AllowedServiceLevels.Contains(level, StringComparer.OrdinalIgnoreCase);
+    }
+
+
+
+    // GET: Contracts
+    public async Task<IActionResult> Index(string? status, DateTime? startFrom, DateTime? endTo)
+    {
+        var query = _context.Contracts
             .Include(c => c.Client)
             .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) &&
+            Enum.TryParse<GLMS_Monolith.Models.Enums.ContractStatus>(status, out var parsedStatus))
+        {
+            query = query.Where(c => c.Status == parsedStatus);
+        }
+
+        if (startFrom.HasValue)
+        {
+            query = query.Where(c => c.StartDate >= startFrom.Value.Date);
+        }
+
+        if (endTo.HasValue)
+        {
+            query = query.Where(c => c.EndDate <= endTo.Value.Date);
+        }
+
+        var contracts = await query
             .OrderByDescending(c => c.Id)
             .ToListAsync();
+
+        ViewBag.CurrentStatus = status;
+        ViewBag.StartFrom = startFrom?.ToString("yyyy-MM-dd");
+        ViewBag.EndTo = endTo?.ToString("yyyy-MM-dd");
+        ViewBag.StatusOptions = Enum.GetNames(typeof(GLMS_Monolith.Models.Enums.ContractStatus));
 
         return View(contracts);
     }
@@ -47,6 +93,8 @@ public class ContractsController : Controller
     public async Task<IActionResult> Create()
     {
         await PopulateClientDropdownAsync();
+        PopulateServiceLevelOptions();
+
         return View(new Contract
         {
             StartDate = DateTime.Today,
@@ -75,9 +123,15 @@ public class ContractsController : Controller
             ModelState.AddModelError("signedAgreementFile", error);
         }
 
+        if (!IsValidServiceLevel(contract.ServiceLevel))
+        {
+            ModelState.AddModelError(nameof(contract.ServiceLevel), "Please choose a valid service level.");
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateClientDropdownAsync(contract.ClientId);
+            PopulateServiceLevelOptions(contract.ServiceLevel);
             return View(contract);
         }
 
@@ -101,6 +155,7 @@ public class ContractsController : Controller
         if (contract == null) return NotFound();
 
         await PopulateClientDropdownAsync(contract.ClientId);
+        PopulateServiceLevelOptions(contract.ServiceLevel);
         return View(contract);
     }
 
@@ -128,6 +183,11 @@ public class ContractsController : Controller
             ModelState.AddModelError("signedAgreementFile", error);
         }
 
+        if (!IsValidServiceLevel(input.ServiceLevel))
+        {
+            ModelState.AddModelError(nameof(input.ServiceLevel), "Please choose a valid service level.");
+        }
+
         if (!ModelState.IsValid)
         {
             contract.ClientId = input.ClientId;
@@ -137,6 +197,7 @@ public class ContractsController : Controller
             contract.ServiceLevel = input.ServiceLevel;
 
             await PopulateClientDropdownAsync(input.ClientId);
+            PopulateServiceLevelOptions(input.ServiceLevel);
             return View(contract);
         }
 

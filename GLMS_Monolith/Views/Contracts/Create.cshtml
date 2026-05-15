@@ -39,7 +39,9 @@
 
             <div class="form-group mb-2">
                 <label asp-for="ServiceLevel" class="control-label"></label>
-                <input asp-for="ServiceLevel" class="form-control" />
+                <select asp-for="ServiceLevel" class="form-control" asp-items="ViewBag.ServiceLevels">
+                    <option value="">-- Select service level --</option>
+                </select>
                 <span asp-validation-for="ServiceLevel" class="text-danger"></span>
             </div>
 

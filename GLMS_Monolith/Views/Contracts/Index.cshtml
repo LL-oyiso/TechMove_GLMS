@@ -6,6 +6,34 @@
 
 <h1>Contracts</h1>
 
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-control">
+            <option value="">All</option>
+            @foreach (var s in (string[])ViewBag.StatusOptions)
+            {
+                <option value="@s" selected="@(ViewBag.CurrentStatus == s)">@s</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Start Date From</label>
+        <input type="date" name="startFrom" value="@ViewBag.StartFrom" class="form-control" />
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">End Date To</label>
+        <input type="date" name="endTo" value="@ViewBag.EndTo" class="form-control" />
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary me-2">Filter</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
 <p>
     <a asp-action="Create">Create New</a>
 </p>
