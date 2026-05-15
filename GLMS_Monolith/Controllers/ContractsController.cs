@@ -1,150 +1,236 @@
-
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GLMS_Monolith.Models;
 using GLMS_Monolith.Data;
+using GLMS_Monolith.Models;
+using GLMS_Monolith.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 public class ContractsController : Controller
 {
     private readonly GlmsDbContext _context;
+    private readonly IFileStorageService _fileStorage;
 
-    public ContractsController(GlmsDbContext context)
+    public ContractsController(GlmsDbContext context, IFileStorageService fileStorage)
     {
         _context = context;
+        _fileStorage = fileStorage;
     }
 
-    // GET: CONTRACTS
-    public async Task<IActionResult> Index()    
+    // GET: Contracts
+    public async Task<IActionResult> Index()
     {
-        return View(await _context.Contracts.ToListAsync());
+        var contracts = await _context.Contracts
+            .Include(c => c.Client)
+            .AsNoTracking()
+            .OrderByDescending(c => c.Id)
+            .ToListAsync();
+
+        return View(contracts);
     }
 
-    // GET: CONTRACTS/Details/5
+    // GET: Contracts/Details/5
     public async Task<IActionResult> Details(int? id)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
+        if (id == null) return NotFound();
 
         var contract = await _context.Contracts
+            .Include(c => c.Client)
+            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id);
-        if (contract == null)
-        {
-            return NotFound();
-        }
+
+        if (contract == null) return NotFound();
 
         return View(contract);
     }
 
-    // GET: CONTRACTS/Create
-    public IActionResult Create()
+    // GET: Contracts/Create
+    public async Task<IActionResult> Create()
     {
-        return View();
+        await PopulateClientDropdownAsync();
+        return View(new Contract
+        {
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddMonths(1)
+        });
     }
 
-    // POST: CONTRACTS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+    // POST: Contracts/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,ClientId,Client,StartDate,EndDate,Status,ServiceLevel,SignedAgreementFileName,SignedAgreementStoredPath,SignedAgreementContentType,SignedAgreementUploadedAt,ServiceRequests")] Contract contract)
+    public async Task<IActionResult> Create(
+        [Bind("ClientId,StartDate,EndDate,Status,ServiceLevel")] Contract contract,
+        IFormFile? signedAgreementFile)
     {
-        if (ModelState.IsValid)
+        if (contract.EndDate < contract.StartDate)
         {
-            _context.Add(contract);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            ModelState.AddModelError(nameof(contract.EndDate), "End date cannot be before start date.");
         }
-        return View(contract);
+
+        if (signedAgreementFile == null || signedAgreementFile.Length == 0)
+        {
+            ModelState.AddModelError("signedAgreementFile", "Signed Agreement PDF is required.");
+        }
+        else if (!_fileStorage.IsPdf(signedAgreementFile, out var error))
+        {
+            ModelState.AddModelError("signedAgreementFile", error);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateClientDropdownAsync(contract.ClientId);
+            return View(contract);
+        }
+
+        var stored = await _fileStorage.SaveContractAgreementAsync(signedAgreementFile!);
+        contract.SignedAgreementFileName = stored.OriginalFileName;
+        contract.SignedAgreementStoredPath = stored.StoredRelativePath;
+        contract.SignedAgreementContentType = stored.ContentType;
+        contract.SignedAgreementUploadedAt = stored.UploadedAtUtc;
+
+        _context.Add(contract);
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
     }
 
-    // GET: CONTRACTS/Edit/5
+    // GET: Contracts/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
+        if (id == null) return NotFound();
 
         var contract = await _context.Contracts.FindAsync(id);
-        if (contract == null)
-        {
-            return NotFound();
-        }
+        if (contract == null) return NotFound();
+
+        await PopulateClientDropdownAsync(contract.ClientId);
         return View(contract);
     }
 
-    // POST: CONTRACTS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+    // POST: Contracts/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,ClientId,Client,StartDate,EndDate,Status,ServiceLevel,SignedAgreementFileName,SignedAgreementStoredPath,SignedAgreementContentType,SignedAgreementUploadedAt,ServiceRequests")] Contract contract)
+    public async Task<IActionResult> Edit(
+        int id,
+        [Bind("Id,ClientId,StartDate,EndDate,Status,ServiceLevel")] Contract input,
+        IFormFile? signedAgreementFile,
+        bool removeExistingFile = false)
     {
-        if (id != contract.Id)
-        {
-            return NotFound();
-        }
+        if (id != input.Id) return NotFound();
 
-        if (ModelState.IsValid)
-        {
-            try
-            {
-                _context.Update(contract);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ContractExists(contract.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-            return RedirectToAction(nameof(Index));
-        }
-        return View(contract);
-    }
-
-    // GET: CONTRACTS/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var contract = await _context.Contracts
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (contract == null)
-        {
-            return NotFound();
-        }
-
-        return View(contract);
-    }
-
-    // POST: CONTRACTS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? id)
-    {
         var contract = await _context.Contracts.FindAsync(id);
-        if (contract != null)
+        if (contract == null) return NotFound();
+
+        if (input.EndDate < input.StartDate)
         {
-            _context.Contracts.Remove(contract);
+            ModelState.AddModelError(nameof(input.EndDate), "End date cannot be before start date.");
+        }
+
+        if (signedAgreementFile != null && !_fileStorage.IsPdf(signedAgreementFile, out var error))
+        {
+            ModelState.AddModelError("signedAgreementFile", error);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            contract.ClientId = input.ClientId;
+            contract.StartDate = input.StartDate;
+            contract.EndDate = input.EndDate;
+            contract.Status = input.Status;
+            contract.ServiceLevel = input.ServiceLevel;
+
+            await PopulateClientDropdownAsync(input.ClientId);
+            return View(contract);
+        }
+
+        contract.ClientId = input.ClientId;
+        contract.StartDate = input.StartDate;
+        contract.EndDate = input.EndDate;
+        contract.Status = input.Status;
+        contract.ServiceLevel = input.ServiceLevel;
+
+        if (removeExistingFile)
+        {
+            _fileStorage.DeleteIfExists(contract.SignedAgreementStoredPath);
+            contract.SignedAgreementFileName = null;
+            contract.SignedAgreementStoredPath = null;
+            contract.SignedAgreementContentType = null;
+            contract.SignedAgreementUploadedAt = null;
+        }
+
+        if (signedAgreementFile != null && signedAgreementFile.Length > 0)
+        {
+            _fileStorage.DeleteIfExists(contract.SignedAgreementStoredPath);
+
+            var stored = await _fileStorage.SaveContractAgreementAsync(signedAgreementFile);
+            contract.SignedAgreementFileName = stored.OriginalFileName;
+            contract.SignedAgreementStoredPath = stored.StoredRelativePath;
+            contract.SignedAgreementContentType = stored.ContentType;
+            contract.SignedAgreementUploadedAt = stored.UploadedAtUtc;
         }
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
 
-    private bool ContractExists(int? id)
+    // GET: Contracts/DownloadAgreement/5
+    [HttpGet]
+    public async Task<IActionResult> DownloadAgreement(int id)
     {
-        return _context.Contracts.Any(e => e.Id == id);
+        var contract = await _context.Contracts.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        if (contract == null || string.IsNullOrWhiteSpace(contract.SignedAgreementStoredPath))
+        {
+            return NotFound("Agreement file not found.");
+        }
+
+        var fullPath = _fileStorage.GetFullPath(contract.SignedAgreementStoredPath);
+        if (!System.IO.File.Exists(fullPath))
+        {
+            return NotFound("File missing on server.");
+        }
+
+        var downloadName = string.IsNullOrWhiteSpace(contract.SignedAgreementFileName)
+            ? $"contract-{contract.Id}.pdf"
+            : contract.SignedAgreementFileName;
+
+        return PhysicalFile(fullPath, "application/pdf", downloadName);
+    }
+
+    // GET: Contracts/Delete/5
+    public async Task<IActionResult> Delete(int? id)
+    {
+        if (id == null) return NotFound();
+
+        var contract = await _context.Contracts
+            .Include(c => c.Client)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (contract == null) return NotFound();
+
+        return View(contract);
+    }
+
+    // POST: Contracts/Delete/5
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var contract = await _context.Contracts.FindAsync(id);
+        if (contract != null)
+        {
+            _fileStorage.DeleteIfExists(contract.SignedAgreementStoredPath);
+            _context.Contracts.Remove(contract);
+            await _context.SaveChangesAsync();
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task PopulateClientDropdownAsync(object? selectedClient = null)
+    {
+        var clients = await _context.Clients
+            .AsNoTracking()
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        ViewData["ClientId"] = new SelectList(clients, "Id", "Name", selectedClient);
     }
 }

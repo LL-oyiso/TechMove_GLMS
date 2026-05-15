@@ -1,95 +1,52 @@
 @model IEnumerable<GLMS_Monolith.Models.Contract>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Contracts";
 }
 
-<h1>Index</h1>
+<h1>Contracts</h1>
 
 <p>
     <a asp-action="Create">Create New</a>
 </p>
+
 <table class="table">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ClientId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Client)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StartDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EndDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ServiceLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SignedAgreementFileName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SignedAgreementStoredPath)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SignedAgreementContentType)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SignedAgreementUploadedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ServiceRequests)
-            </th>
+            <th>Client</th>
+            <th>@Html.DisplayNameFor(model => model.StartDate)</th>
+            <th>@Html.DisplayNameFor(model => model.EndDate)</th>
+            <th>@Html.DisplayNameFor(model => model.Status)</th>
+            <th>@Html.DisplayNameFor(model => model.ServiceLevel)</th>
+            <th>Signed Agreement</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.ClientId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Client)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.StartDate)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.EndDate)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ServiceLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SignedAgreementFileName)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SignedAgreementStoredPath)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SignedAgreementContentType)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SignedAgreementUploadedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ServiceRequests)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@(item.Client?.Name ?? $"Client #{item.ClientId}")</td>
+                <td>@item.StartDate.ToString("yyyy-MM-dd")</td>
+                <td>@item.EndDate.ToString("yyyy-MM-dd")</td>
+                <td>@item.Status</td>
+                <td>@item.ServiceLevel</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(item.SignedAgreementStoredPath))
+                    {
+                        <a asp-action="DownloadAgreement" asp-route-id="@item.Id">Download PDF</a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">No file</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
