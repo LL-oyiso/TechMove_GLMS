@@ -10,11 +10,16 @@ public class ServiceRequestsController : Controller
 {
     private readonly GlmsDbContext _context;
     private readonly IContractWorkflowService _workflowService;
+    private readonly ICurrencyConversionService _currencyConversionService;
 
-    public ServiceRequestsController(GlmsDbContext context, IContractWorkflowService workflowService)
+    public ServiceRequestsController(
+        GlmsDbContext context,
+        IContractWorkflowService workflowService,
+        ICurrencyConversionService currencyConversionService)
     {
         _context = context;
         _workflowService = workflowService;
+        _currencyConversionService = currencyConversionService;
     }
 
     public async Task<IActionResult> Index()
@@ -50,6 +55,29 @@ public class ServiceRequestsController : Controller
         return View(new ServiceRequest { Status = ServiceRequestStatus.New });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetZarEstimate(decimal usdAmount)
+    {
+        if (usdAmount <= 0)
+        {
+            return BadRequest(new { message = "USD amount must be greater than zero." });
+        }
+
+        try
+        {
+            var conversion = await _currencyConversionService.ConvertUsdToZarAsync(usdAmount);
+            return Json(new
+            {
+                costZar = conversion.ZarAmount,
+                rateUsed = conversion.RateUsed
+            });
+        }
+        catch (Exception)
+        {
+            return StatusCode(503, new { message = "FX service currently unavailable." });
+        }
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("ContractId,Description,CostUsd,Status")] ServiceRequest input)
@@ -73,14 +101,24 @@ public class ServiceRequestsController : Controller
             return View(input);
         }
 
-        // Placeholder until FX API step:
-        input.CostZar = 0;
-        input.ExchangeRateUsed = 0;
-        input.CreatedAt = DateTime.UtcNow;
+        try
+        {
+            var conversion = await _currencyConversionService.ConvertUsdToZarAsync(input.CostUsd);
+            input.CostZar = conversion.ZarAmount;
+            input.ExchangeRateUsed = conversion.RateUsed;
+            input.CreatedAt = DateTime.UtcNow;
 
-        _context.ServiceRequests.Add(input);
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+            _context.ServiceRequests.Add(input);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception)
+        {
+            ModelState.AddModelError(string.Empty, "Currency service is unavailable right now. Please retry.");
+            await PopulateContractDropdownAsync(input.ContractId);
+            return View(input);
+        }
     }
 
     public async Task<IActionResult> Edit(int? id)
@@ -123,13 +161,30 @@ public class ServiceRequestsController : Controller
             return View(existing);
         }
 
-        existing.ContractId = input.ContractId;
-        existing.Description = input.Description;
-        existing.CostUsd = input.CostUsd;
-        existing.Status = input.Status;
+        try
+        {
+            var conversion = await _currencyConversionService.ConvertUsdToZarAsync(input.CostUsd);
 
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+            existing.ContractId = input.ContractId;
+            existing.Description = input.Description;
+            existing.CostUsd = input.CostUsd;
+            existing.CostZar = conversion.ZarAmount;
+            existing.ExchangeRateUsed = conversion.RateUsed;
+            existing.Status = input.Status;
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception)
+        {
+            ModelState.AddModelError(string.Empty, "Currency service is unavailable right now. Please retry.");
+            await PopulateContractDropdownAsync(input.ContractId);
+            existing.ContractId = input.ContractId;
+            existing.Description = input.Description;
+            existing.CostUsd = input.CostUsd;
+            existing.Status = input.Status;
+            return View(existing);
+        }
     }
 
     public async Task<IActionResult> Delete(int? id)

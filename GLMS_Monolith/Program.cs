@@ -7,11 +7,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+
+
+
+
+
+
+
 builder.Services.AddDbContext<GlmsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IContractWorkflowService, ContractWorkflowService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+builder.Services.AddHttpClient<IExchangeRateProvider, ExchangeRateApiProvider>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["FxApi:BaseUrl"] ?? "https://v6.exchangerate-api.com/v6/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+
 
 var app = builder.Build();
 

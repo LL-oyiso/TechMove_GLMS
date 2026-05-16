@@ -27,9 +27,21 @@
 
             <div class="form-group mb-2">
                 <label asp-for="CostUsd" class="control-label"></label>
-                <input asp-for="CostUsd" class="form-control" />
+                <input asp-for="CostUsd" class="form-control" id="costUsdInput" />
                 <span asp-validation-for="CostUsd" class="text-danger"></span>
             </div>
+
+            <div class="form-group mb-2">
+                <label class="control-label">Estimated Cost (ZAR)</label>
+                <input asp-for="CostZar" class="form-control" id="costZarPreview" readonly />
+            </div>
+
+            <div class="form-group mb-2">
+                <label class="control-label">Exchange Rate Used (USD->ZAR)</label>
+                <input asp-for="ExchangeRateUsed" class="form-control" id="ratePreview" readonly />
+            </div>
+
+            <div id="fxMessage" class="small text-muted mb-2"></div>
 
             <div class="form-group mb-3">
                 <label asp-for="Status" class="control-label"></label>
@@ -49,4 +61,50 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        (function () {
+            const usdInput = document.getElementById("costUsdInput");
+            const zarPreview = document.getElementById("costZarPreview");
+            const ratePreview = document.getElementById("ratePreview");
+            const message = document.getElementById("fxMessage");
+            const endpoint = "@Url.Action("GetZarEstimate", "ServiceRequests")";
+
+            let timer = null;
+
+            async function updateEstimate() {
+                const value = parseFloat(usdInput.value);
+                if (!value || value <= 0) {
+                    zarPreview.value = "";
+                    ratePreview.value = "";
+                    message.textContent = "";
+                    message.className = "small text-muted mb-2";
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${endpoint}?usdAmount=${encodeURIComponent(value)}`);
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        throw new Error(data.message || "Unable to get FX estimate.");
+                    }
+
+                    zarPreview.value = Number(data.costZar).toFixed(2);
+                    ratePreview.value = Number(data.rateUsed).toFixed(6);
+                    message.textContent = "Exchange rate loaded successfully.";
+                    message.className = "small text-success mb-2";
+                } catch (err) {
+                    zarPreview.value = "";
+                    ratePreview.value = "";
+                    message.textContent = err.message || "FX service unavailable.";
+                    message.className = "small text-danger mb-2";
+                }
+            }
+
+            usdInput.addEventListener("input", function () {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(updateEstimate, 350);
+            });
+        })();
+    </script>
 }
