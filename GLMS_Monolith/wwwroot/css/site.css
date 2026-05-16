@@ -1,22 +1,104 @@
 html {
-  font-size: 14px;
+    font-size: 15px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+    html {
+        font-size: 16px;
+    }
 }
 
 body {
-  margin-bottom: 60px;
+    margin: 0;
+    margin-bottom: 70px;
+    background: #f4f7fb;
+    color: #1f2937;
+}
+
+.app-navbar {
+    background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 100%);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+}
+
+.app-brand {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #ffffff !important;
+}
+
+.app-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.app-navbar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.app-main {
+    padding-top: 0.25rem;
+}
+
+h1, h2, h3 {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.table {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.table thead th {
+    background: #eef2ff;
+    color: #1e3a8a;
+    border-bottom: none;
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.6rem;
+    border: 1px solid #d1d5db;
+}
+
+.form-control:focus,
+.form-select:focus,
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.2);
+    border-color: #60a5fa;
+}
+
+.btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    border-radius: 0.6rem;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.btn-secondary,
+.btn-outline-secondary {
+    border-radius: 0.6rem;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 70px;
+    border-top: 1px solid #e5e7eb;
+    background: #ffffff;
 }
