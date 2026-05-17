@@ -9,11 +9,13 @@ public class ContractsController : Controller
 {
     private readonly GlmsDbContext _context;
     private readonly IFileStorageService _fileStorage;
+    private readonly IContractWorkflowService _workflowService;
 
-    public ContractsController(GlmsDbContext context, IFileStorageService fileStorage)
+    public ContractsController(GlmsDbContext context, IFileStorageService fileStorage, IContractWorkflowService workflowService)
     {
         _context = context;
         _fileStorage = fileStorage;
+        _workflowService = workflowService;
     }
 
     private static readonly string[] AllowedServiceLevels =
@@ -176,6 +178,11 @@ public class ContractsController : Controller
         if (input.EndDate < input.StartDate)
         {
             ModelState.AddModelError(nameof(input.EndDate), "End date cannot be before start date.");
+        }
+
+        if (!_workflowService.CanTransitionStatus(contract.Status, input.Status, out var transitionReason))
+        {
+            ModelState.AddModelError(nameof(input.Status), transitionReason);
         }
 
         if (signedAgreementFile != null && !_fileStorage.IsPdf(signedAgreementFile, out var error))

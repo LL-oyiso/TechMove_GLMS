@@ -25,7 +25,7 @@ public class ServiceRequestsController : Controller
     public async Task<IActionResult> Index()
     {
         var items = await _context.ServiceRequests
-            .Include(sr => sr.Contract)
+            .Include(sr => sr.Contract!)
             .ThenInclude(c => c.Client)
             .AsNoTracking()
             .OrderByDescending(sr => sr.CreatedAt)
@@ -39,7 +39,7 @@ public class ServiceRequestsController : Controller
         if (id == null) return NotFound();
 
         var item = await _context.ServiceRequests
-            .Include(sr => sr.Contract)
+            .Include(sr => sr.Contract!)
             .ThenInclude(c => c.Client)
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id);
@@ -192,7 +192,7 @@ public class ServiceRequestsController : Controller
         if (id == null) return NotFound();
 
         var item = await _context.ServiceRequests
-            .Include(sr => sr.Contract)
+            .Include(sr => sr.Contract!)
             .ThenInclude(c => c.Client)
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id);

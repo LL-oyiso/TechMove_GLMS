@@ -43,4 +43,49 @@ public class ContractWorkflowServiceTests
         canCreate.Should().BeTrue();
         reason.Should().BeEmpty();
     }
+
+    [Fact]
+    public void CanTransitionStatus_FromExpired_ReturnsFalse()
+    {
+        var allowed = _service.CanTransitionStatus(ContractStatus.Expired, ContractStatus.Active, out var reason);
+
+        allowed.Should().BeFalse();
+        reason.Should().Contain("Expired");
+    }
+
+    [Theory]
+    [InlineData(ContractStatus.Active)]
+    [InlineData(ContractStatus.OnHold)]
+    public void CanTransitionStatus_ToDraft_ReturnsFalse(ContractStatus status)
+    {
+        var allowed = _service.CanTransitionStatus(status, ContractStatus.Draft, out var reason);
+
+        allowed.Should().BeFalse();
+        reason.Should().NotBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ContractStatus.Draft, ContractStatus.Active)]
+    [InlineData(ContractStatus.Active, ContractStatus.OnHold)]
+    [InlineData(ContractStatus.OnHold, ContractStatus.Active)]
+    public void CanTransitionStatus_ValidTransition_ReturnsTrue(ContractStatus from, ContractStatus to)
+    {
+        var allowed = _service.CanTransitionStatus(from, to, out var reason);
+
+        allowed.Should().BeTrue();
+        reason.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ContractStatus.Draft)]
+    [InlineData(ContractStatus.Active)]
+    [InlineData(ContractStatus.OnHold)]
+    [InlineData(ContractStatus.Expired)]
+    public void CanTransitionStatus_SameStatus_ReturnsTrue(ContractStatus status)
+    {
+        var allowed = _service.CanTransitionStatus(status, status, out var reason);
+
+        allowed.Should().BeTrue();
+        reason.Should().BeEmpty();
+    }
 }
