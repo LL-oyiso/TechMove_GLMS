@@ -1,8 +1,34 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero-card">
+    <h1>TechMove GLMS Dashboard</h1>
+    <p class="text-muted mb-0">
+        Centralized platform for managing clients, contracts, and service requests with workflow validation and live FX conversion.
+    </p>
+</section>
+
+<section class="quick-links-grid">
+    <a asp-controller="Clients" asp-action="Index" class="quick-link-card">
+        <h3>Clients</h3>
+        <p>Maintain customer profiles and regional contacts.</p>
+    </a>
+    <a asp-controller="Contracts" asp-action="Index" class="quick-link-card">
+        <h3>Contracts</h3>
+        <p>Track contract status, service levels, and signed PDFs.</p>
+    </a>
+    <a asp-controller="ServiceRequests" asp-action="Index" class="quick-link-card">
+        <h3>Service Requests</h3>
+        <p>Create requests with automatic USD to ZAR conversion.</p>
+    </a>
+</section>
+
+<section class="mt-4">
+    <h3>Workflow Rules</h3>
+    <ul class="text-muted">
+        <li>Service requests cannot be created for contracts in On Hold or Expired status.</li>
+        <li>Expired contracts are terminal and cannot transition to another status.</li>
+        <li>Signed agreement uploads accept valid PDF files only.</li>
+    </ul>
+</section>

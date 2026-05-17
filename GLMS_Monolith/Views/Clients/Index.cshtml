@@ -1,51 +1,38 @@
 @model IEnumerable<GLMS_Monolith.Models.Client>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Clients";
 }
 
-<h1>Index</h1>
+<div class="page-header">
+    <div>
+        <h1>Clients</h1>
+        <p class="text-muted mb-0">Manage customer profiles and regional contact information.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">Add Client</a>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
+<table class="table align-middle">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ContactDetails)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Region)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Contracts)
-            </th>
+            <th>Name</th>
+            <th>Contact Details</th>
+            <th>Region</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
 @foreach (var item in Model) {
         <tr>
+            <td>@item.Name</td>
+            <td>@item.ContactDetails</td>
+            <td>@item.Region</td>
             <td>
-                @Html.DisplayFor(model => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ContactDetails)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Region)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Contracts)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                <div class="actions-inline">
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Details</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                </div>
             </td>
         </tr>
 }

@@ -33,12 +33,12 @@
 
             <div class="form-group mb-2">
                 <label class="control-label">Estimated Cost (ZAR)</label>
-                <input asp-for="CostZar" class="form-control" id="costZarPreview" readonly />
+                <input class="form-control" id="costZarPreview" readonly />
             </div>
 
             <div class="form-group mb-2">
                 <label class="control-label">Exchange Rate Used (USD->ZAR)</label>
-                <input asp-for="ExchangeRateUsed" class="form-control" id="ratePreview" readonly />
+                <input class="form-control" id="ratePreview" readonly />
             </div>
 
             <div id="fxMessage" class="small text-muted mb-2"></div>
@@ -105,6 +105,10 @@
                 if (timer) clearTimeout(timer);
                 timer = setTimeout(updateEstimate, 350);
             });
+
+            if (usdInput.value && parseFloat(usdInput.value) > 0) {
+                updateEstimate();
+            }
         })();
     </script>
 }
