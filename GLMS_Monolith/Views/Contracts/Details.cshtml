@@ -4,41 +4,53 @@
     ViewData["Title"] = "Contract Details";
 }
 
-<h1>Contract Details</h1>
-
-<div>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-3">Client</dt>
-        <dd class="col-sm-9">@(Model.Client?.Name ?? $"Client #{Model.ClientId}")</dd>
-
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.StartDate)</dt>
-        <dd class="col-sm-9">@Model.StartDate.ToString("yyyy-MM-dd")</dd>
-
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.EndDate)</dt>
-        <dd class="col-sm-9">@Model.EndDate.ToString("yyyy-MM-dd")</dd>
-
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Status)</dt>
-        <dd class="col-sm-9">@Model.Status</dd>
-
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.ServiceLevel)</dt>
-        <dd class="col-sm-9">@Model.ServiceLevel</dd>
-
-        <dt class="col-sm-3">Signed Agreement</dt>
-        <dd class="col-sm-9">
-            @if (!string.IsNullOrWhiteSpace(Model.SignedAgreementStoredPath))
-            {
-                <a asp-action="DownloadAgreement" asp-route-id="@Model.Id">@Model.SignedAgreementFileName</a>
-                <div class="text-muted small">Uploaded: @Model.SignedAgreementUploadedAt?.ToString("u")</div>
-            }
-            else
-            {
-                <span class="text-muted">No file uploaded.</span>
-            }
-        </dd>
-    </dl>
+<div class="page-header">
+    <div>
+        <h1>Contract Details</h1>
+        <p class="text-muted mb-0">Full contract record and signed agreement.</p>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
-    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+
+<div class="detail-card">
+    <dl class="detail-grid">
+        <div class="detail-row">
+            <dt>Client</dt>
+            <dd>@(Model.Client?.Name ?? $"Client #{Model.ClientId}")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Start Date</dt>
+            <dd>@Model.StartDate.ToString("yyyy-MM-dd")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>End Date</dt>
+            <dd>@Model.EndDate.ToString("yyyy-MM-dd")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Status</dt>
+            <dd><span class="status-pill status-@Model.Status.ToString().ToLowerInvariant()">@Model.Status</span></dd>
+        </div>
+        <div class="detail-row">
+            <dt>Service Level</dt>
+            <dd>@Model.ServiceLevel</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Signed Agreement</dt>
+            <dd>
+                @if (!string.IsNullOrWhiteSpace(Model.SignedAgreementStoredPath))
+                {
+                    <a asp-action="DownloadAgreement" asp-route-id="@Model.Id">@Model.SignedAgreementFileName</a>
+                    <div class="text-muted small mt-1">Uploaded: @Model.SignedAgreementUploadedAt?.ToString("yyyy-MM-dd HH:mm")</div>
+                }
+                else
+                {
+                    <span class="text-muted">No file uploaded.</span>
+                }
+            </dd>
+        </div>
+    </dl>
+
+    <div class="form-actions mt-3">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
 </div>
