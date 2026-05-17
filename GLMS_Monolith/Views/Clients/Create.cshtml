@@ -1,48 +1,41 @@
 @model GLMS_Monolith.Models.Client
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Add Client";
 }
 
-<h1>Create</h1>
-
-<h4>Client</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="ContactDetails" class="control-label"></label>
-                <input asp-for="ContactDetails" class="form-control" />
-                <span asp-validation-for="ContactDetails" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Region" class="control-label"></label>
-                <input asp-for="Region" class="form-control" />
-                <span asp-validation-for="Region" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Contracts" class="control-label"></label>
-                <input asp-for="Contracts" class="form-control" />
-                <span asp-validation-for="Contracts" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+<div class="page-header">
+    <div>
+        <h1>Add Client</h1>
+        <p class="text-muted mb-0">Create a new customer profile.</p>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+<div class="detail-card">
+    <form asp-action="Create">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Name" class="form-label fw-semibold"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="ContactDetails" class="form-label fw-semibold">Contact Details</label>
+            <input asp-for="ContactDetails" class="form-control" />
+            <span asp-validation-for="ContactDetails" class="text-danger small"></span>
+        </div>
+
+        <div class="form-group mb-4">
+            <label asp-for="Region" class="form-label fw-semibold"></label>
+            <input asp-for="Region" class="form-control" />
+            <span asp-validation-for="Region" class="text-danger small"></span>
+        </div>
+
+        <div class="form-actions">
+            <input type="submit" value="Create Client" class="btn btn-primary" />
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
 </div>

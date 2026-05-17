@@ -1,73 +1,51 @@
 @model GLMS_Monolith.Models.ServiceRequest
+@using GLMS_Monolith.Models.Enums
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Service Request Details";
 }
 
-<h1>Details</h1>
-
-<div>
-    <h4>ServiceRequest</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ContractId)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ContractId)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Contract)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Contract)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CostUsd)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CostUsd)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CostZar)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CostZar)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ExchangeRateUsed)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ExchangeRateUsed)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-    </dl>
+<div class="page-header">
+    <div>
+        <h1>Service Request Details</h1>
+        <p class="text-muted mb-0">Full breakdown of cost, contract, and status.</p>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+
+<div class="detail-card">
+    <dl class="detail-grid">
+        <div class="detail-row">
+            <dt>Contract</dt>
+            <dd>#@Model.ContractId — @(Model.Contract?.Client?.Name ?? "-")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Description</dt>
+            <dd>@Model.Description</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Cost (USD)</dt>
+            <dd>$@Model.CostUsd.ToString("N2")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Cost (ZAR)</dt>
+            <dd>R @Model.CostZar.ToString("N2")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Exchange Rate Used</dt>
+            <dd>@Model.ExchangeRateUsed.ToString("N6")</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Status</dt>
+            <dd><span class="status-pill status-@Model.Status.ToString().ToLowerInvariant()">@Model.Status</span></dd>
+        </div>
+        <div class="detail-row">
+            <dt>Created At</dt>
+            <dd>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+        </div>
+    </dl>
+
+    <div class="form-actions mt-3">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
 </div>

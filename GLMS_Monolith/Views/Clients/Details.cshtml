@@ -1,45 +1,34 @@
 @model GLMS_Monolith.Models.Client
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Client Details";
 }
 
-<h1>Details</h1>
-
-<div>
-    <h4>Client</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ContactDetails)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ContactDetails)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Region)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Region)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Contracts)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Contracts)
-        </dd>
-    </dl>
+<div class="page-header">
+    <div>
+        <h1>Client Details</h1>
+        <p class="text-muted mb-0">Customer profile information.</p>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+
+<div class="detail-card">
+    <dl class="detail-grid">
+        <div class="detail-row">
+            <dt>Name</dt>
+            <dd>@Model.Name</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Contact Details</dt>
+            <dd>@Model.ContactDetails</dd>
+        </div>
+        <div class="detail-row">
+            <dt>Region</dt>
+            <dd>@Model.Region</dd>
+        </div>
+    </dl>
+
+    <div class="form-actions mt-3">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
 </div>
