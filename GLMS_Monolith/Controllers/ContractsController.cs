@@ -175,6 +175,8 @@ public class ContractsController : Controller
         var contract = await _context.Contracts.FindAsync(id);
         if (contract == null) return NotFound();
 
+        var previousStatus = contract.Status;
+
         if (input.EndDate < input.StartDate)
         {
             ModelState.AddModelError(nameof(input.EndDate), "End date cannot be before start date.");
@@ -235,6 +237,12 @@ public class ContractsController : Controller
         }
 
         await _context.SaveChangesAsync();
+
+        if (previousStatus != contract.Status)
+        {
+            _workflowService.NotifyStatusChanged(contract.Id, previousStatus, contract.Status);
+        }
+
         return RedirectToAction(nameof(Index));
     }
 

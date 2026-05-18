@@ -5,6 +5,13 @@ namespace GLMS_Monolith.Services;
 
 public class ContractWorkflowService : IContractWorkflowService
 {
+    private readonly IReadOnlyList<IContractStatusObserver> _observers;
+
+    public ContractWorkflowService(IEnumerable<IContractStatusObserver>? observers = null)
+    {
+        _observers = observers?.ToList() ?? new List<IContractStatusObserver>();
+    }
+
     public bool CanCreateServiceRequest(Contract contract, out string reason)
     {
         reason = string.Empty;
@@ -29,9 +36,7 @@ public class ContractWorkflowService : IContractWorkflowService
         reason = string.Empty;
 
         if (currentStatus == newStatus)
-        {
             return true;
-        }
 
         if (currentStatus == ContractStatus.Expired)
         {
@@ -54,5 +59,13 @@ public class ContractWorkflowService : IContractWorkflowService
         }
 
         return true;
+    }
+
+    public void NotifyStatusChanged(int contractId, ContractStatus previousStatus, ContractStatus newStatus)
+    {
+        foreach (var observer in _observers)
+        {
+            observer.OnStatusChanged(contractId, previousStatus, newStatus);
+        }
     }
 }
