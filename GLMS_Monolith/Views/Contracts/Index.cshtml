@@ -58,7 +58,7 @@
                 <td>@(item.Client?.Name ?? $"Client #{item.ClientId}")</td>
                 <td>@item.StartDate.ToString("yyyy-MM-dd")</td>
                 <td>@item.EndDate.ToString("yyyy-MM-dd")</td>
-                <td><span class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@item.Status</span></td>
+                <td><span class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(item.Status)</span></td>
                 <td>@item.ServiceLevel</td>
                 <td>
                     @if (!string.IsNullOrWhiteSpace(item.SignedAgreementStoredPath))

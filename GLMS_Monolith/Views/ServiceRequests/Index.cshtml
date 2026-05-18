@@ -48,7 +48,7 @@
                 @item.ExchangeRateUsed.ToString("N6")
             </td>
             <td>
-                <span class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@item.Status</span>
+                <span class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(item.Status)</span>
             </td>
             <td>
                 @item.CreatedAt.ToString("yyyy-MM-dd HH:mm")

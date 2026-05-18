@@ -11,7 +11,7 @@
     <div class="dash-hero-content">
         <div>
             <h1 class="dash-hero-title">TechMove GLMS</h1>
-            <p class="dash-hero-subtitle">Operations Command Center — live contracts, requests, and compliance</p>
+            <p class="dash-hero-subtitle">Operations Command Center</p>
         </div>
         <div class="dash-hero-actions">
             <a asp-controller="Contracts" asp-action="Create" class="btn btn-light btn-hero">+ Create Contract</a>
@@ -68,7 +68,7 @@
                             <td>@c.Id</td>
                             <td>@(c.Client?.Name ?? "-")</td>
                             <td>@c.ServiceLevel</td>
-                            <td><span class="status-pill status-@c.Status.ToString().ToLowerInvariant()">@c.Status</span></td>
+                            <td><span class="status-pill status-@c.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(c.Status)</span></td>
                             <td>@c.EndDate.ToString("yyyy-MM-dd")</td>
                         </tr>
                     }
@@ -106,7 +106,7 @@
                             <td>@(r.Contract?.Client?.Name ?? "-")</td>
                             <td>@(r.Description.Length > 40 ? r.Description[..40] + "…" : r.Description)</td>
                             <td>@r.CostUsd.ToString("N2")</td>
-                            <td><span class="status-pill status-@r.Status.ToString().ToLowerInvariant()">@r.Status</span></td>
+                            <td><span class="status-pill status-@r.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(r.Status)</span></td>
                         </tr>
                     }
                 </tbody>

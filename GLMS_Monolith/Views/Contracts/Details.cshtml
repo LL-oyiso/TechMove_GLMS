@@ -27,7 +27,7 @@
         </div>
         <div class="detail-row">
             <dt>Status</dt>
-            <dd><span class="status-pill status-@Model.Status.ToString().ToLowerInvariant()">@Model.Status</span></dd>
+            <dd><span class="status-pill status-@Model.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(Model.Status)</span></dd>
         </div>
         <div class="detail-row">
             <dt>Service Level</dt>
