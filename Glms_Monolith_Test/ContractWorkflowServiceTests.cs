@@ -1,7 +1,7 @@
 using FluentAssertions;
-using GLMS_Monolith.Models;
-using GLMS_Monolith.Models.Enums;
-using GLMS_Monolith.Services;
+using GLMS.Api.Models;
+using GLMS.Shared.Enums;
+using GLMS.Api.Services;
 
 namespace Glms_Monolith_Test;
 

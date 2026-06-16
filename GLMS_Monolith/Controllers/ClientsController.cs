@@ -1,150 +1,100 @@
-
+using GLMS.Shared.Dtos;
+using GLMS_Monolith.Services.Api;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GLMS_Monolith.Models;
-using GLMS_Monolith.Data;
+
+namespace GLMS_Monolith.Controllers;
 
 public class ClientsController : Controller
 {
-    private readonly GlmsDbContext _context;
+    private readonly IClientsApi _api;
 
-    public ClientsController(GlmsDbContext context)
+    public ClientsController(IClientsApi api)
     {
-        _context = context;
+        _api = api;
     }
 
-    // GET: CLIENTS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index(CancellationToken ct)
     {
-        return View(await _context.Clients.ToListAsync());
+        var clients = await _api.GetAllAsync(ct);
+        return View(clients);
     }
 
-    // GET: CLIENTS/Details/5
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, CancellationToken ct)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var client = await _context.Clients
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (client == null)
-        {
-            return NotFound();
-        }
-
-        return View(client);
+        if (id is null) return NotFound();
+        var client = await _api.GetByIdAsync(id.Value, ct);
+        return client is null ? NotFound() : View(client);
     }
 
-    // GET: CLIENTS/Create
     public IActionResult Create()
     {
-        return View();
+        return View(new ClientInputDto());
     }
 
-    // POST: CLIENTS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Name,ContactDetails,Region,Contracts")] Client client)
+    public async Task<IActionResult> Create(ClientInputDto input, CancellationToken ct)
     {
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid) return View(input);
+
+        try
         {
-            _context.Add(client);
-            await _context.SaveChangesAsync();
+            await _api.CreateAsync(input, ct);
             return RedirectToAction(nameof(Index));
         }
-        return View(client);
+        catch (ApiValidationException ex)
+        {
+            ModelState.AddApiErrors(ex);
+            return View(input);
+        }
     }
 
-    // GET: CLIENTS/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, CancellationToken ct)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
+        if (id is null) return NotFound();
+        var client = await _api.GetByIdAsync(id.Value, ct);
+        if (client is null) return NotFound();
 
-        var client = await _context.Clients.FindAsync(id);
-        if (client == null)
+        ViewBag.Id = client.Id;
+        return View(new ClientInputDto
         {
-            return NotFound();
-        }
-        return View(client);
+            Name = client.Name,
+            ContactDetails = client.ContactDetails,
+            Region = client.Region
+        });
     }
 
-    // POST: CLIENTS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Name,ContactDetails,Region,Contracts")] Client client)
+    public async Task<IActionResult> Edit(int id, ClientInputDto input, CancellationToken ct)
     {
-        if (id != client.Id)
-        {
-            return NotFound();
-        }
+        ViewBag.Id = id;
+        if (!ModelState.IsValid) return View(input);
 
-        if (ModelState.IsValid)
+        try
         {
-            try
-            {
-                _context.Update(client);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ClientExists(client.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _api.UpdateAsync(id, input, ct);
             return RedirectToAction(nameof(Index));
         }
-        return View(client);
+        catch (ApiValidationException ex)
+        {
+            ModelState.AddApiErrors(ex);
+            return View(input);
+        }
     }
 
-    // GET: CLIENTS/Delete/5
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int? id, CancellationToken ct)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var client = await _context.Clients
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (client == null)
-        {
-            return NotFound();
-        }
-
-        return View(client);
+        if (id is null) return NotFound();
+        var client = await _api.GetByIdAsync(id.Value, ct);
+        return client is null ? NotFound() : View(client);
     }
 
-    // POST: CLIENTS/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? id)
+    public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct)
     {
-        var client = await _context.Clients.FindAsync(id);
-        if (client != null)
-        {
-            _context.Clients.Remove(client);
-        }
-
-        await _context.SaveChangesAsync();
+        await _api.DeleteAsync(id, ct);
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool ClientExists(int? id)
-    {
-        return _context.Clients.Any(e => e.Id == id);
     }
 }

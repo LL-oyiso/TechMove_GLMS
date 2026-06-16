@@ -1,4 +1,4 @@
-@model IEnumerable<GLMS_Monolith.Models.ServiceRequest>
+@model IEnumerable<GLMS.Shared.Dtos.ServiceRequestDto>
 
 @{
     ViewData["Title"] = "Service Requests";
@@ -33,7 +33,7 @@
                 #@item.ContractId
             </td>
             <td>
-                @(item.Contract?.Client?.Name ?? "-")
+                @(item.ClientName ?? "-")
             </td>
             <td>
                 @item.Description

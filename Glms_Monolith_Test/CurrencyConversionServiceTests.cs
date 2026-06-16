@@ -1,5 +1,5 @@
 using FluentAssertions;
-using GLMS_Monolith.Services;
+using GLMS.Api.Services;
 
 namespace Glms_Monolith_Test;
 

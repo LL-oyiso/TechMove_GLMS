@@ -1,34 +1,45 @@
+using GLMS_Monolith.Filters;
+using GLMS_Monolith.Services.Api;
 
-using GLMS_Monolith.Services;
-using GLMS_Monolith.Data;
-using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-builder.Services.AddDbContext<GlmsDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<IContractStatusObserver, ContractAuditObserver>();
-builder.Services.AddScoped<IContractWorkflowService, ContractWorkflowService>();
-builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
-
-builder.Services.AddHttpClient<IExchangeRateProvider, ExchangeRateApiProvider>(client =>
+// MVC + global API-exception handling.
+builder.Services.AddControllersWithViews(options =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["FxApi:BaseUrl"] ?? "https://v6.exchangerate-api.com/v6/");
-    client.Timeout = TimeSpan.FromSeconds(10);
+    options.Filters.Add<ApiExceptionFilter>();
 });
-builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
+builder.Services.AddHttpContextAccessor();
+
+// Session is used to hold the signed-in user's JWT for outgoing API calls.
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(8);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddTransient<AuthTokenHandler>();
+
+// Base URL of the GLMS API (overridden by the ApiBaseUrl environment variable in Docker).
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5206";
+
+// Auth client does not need a bearer token (it is how you obtain one).
+builder.Services.AddHttpClient<IAuthApi, AuthApi>(client => client.BaseAddress = new Uri(apiBaseUrl));
+
+// Business clients attach the JWT via the AuthTokenHandler.
+builder.Services.AddHttpClient<IClientsApi, ClientsApi>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<AuthTokenHandler>();
+builder.Services.AddHttpClient<IContractsApi, ContractsApi>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<AuthTokenHandler>();
+builder.Services.AddHttpClient<IServiceRequestsApi, ServiceRequestsApi>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<AuthTokenHandler>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -37,6 +48,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSession();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

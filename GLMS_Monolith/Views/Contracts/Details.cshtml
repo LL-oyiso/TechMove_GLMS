@@ -1,4 +1,4 @@
-@model GLMS_Monolith.Models.Contract
+@model GLMS.Shared.Dtos.ContractDto
 
 @{
     ViewData["Title"] = "Contract Details";
@@ -15,7 +15,7 @@
     <dl class="detail-grid">
         <div class="detail-row">
             <dt>Client</dt>
-            <dd>@(Model.Client?.Name ?? $"Client #{Model.ClientId}")</dd>
+            <dd>@(Model.ClientName ?? $"Client #{Model.ClientId}")</dd>
         </div>
         <div class="detail-row">
             <dt>Start Date</dt>

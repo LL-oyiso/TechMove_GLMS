@@ -1,312 +1,182 @@
-using GLMS_Monolith.Data;
-using GLMS_Monolith.Models;
-using GLMS_Monolith.Services;
+using GLMS.Shared;
+using GLMS.Shared.Dtos;
+using GLMS.Shared.Enums;
+using GLMS_Monolith.Services.Api;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+
+namespace GLMS_Monolith.Controllers;
 
 public class ContractsController : Controller
 {
-    private readonly GlmsDbContext _context;
-    private readonly IFileStorageService _fileStorage;
-    private readonly IContractWorkflowService _workflowService;
+    private readonly IContractsApi _contracts;
+    private readonly IClientsApi _clients;
 
-    public ContractsController(GlmsDbContext context, IFileStorageService fileStorage, IContractWorkflowService workflowService)
+    public ContractsController(IContractsApi contracts, IClientsApi clients)
     {
-        _context = context;
-        _fileStorage = fileStorage;
-        _workflowService = workflowService;
+        _contracts = contracts;
+        _clients = clients;
     }
 
-    private static readonly string[] AllowedServiceLevels =
-{
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Platinum",
-    "Enterprise"
-};
-
-    private void PopulateServiceLevelOptions(string? selected = null)
+    public async Task<IActionResult> Index(string? status, DateTime? startFrom, DateTime? endTo, CancellationToken ct)
     {
-        ViewBag.ServiceLevels = new SelectList(AllowedServiceLevels, selected);
-    }
-
-    private bool IsValidServiceLevel(string? level)
-    {
-        return !string.IsNullOrWhiteSpace(level)
-            && AllowedServiceLevels.Contains(level, StringComparer.OrdinalIgnoreCase);
-    }
-
-
-
-    // GET: Contracts
-    public async Task<IActionResult> Index(string? status, DateTime? startFrom, DateTime? endTo)
-    {
-        var query = _context.Contracts
-            .Include(c => c.Client)
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(status) &&
-            Enum.TryParse<GLMS_Monolith.Models.Enums.ContractStatus>(status, out var parsedStatus))
+        ContractStatus? parsedStatus = null;
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ContractStatus>(status, out var s))
         {
-            query = query.Where(c => c.Status == parsedStatus);
+            parsedStatus = s;
         }
 
-        if (startFrom.HasValue)
-        {
-            query = query.Where(c => c.StartDate >= startFrom.Value.Date);
-        }
-
-        if (endTo.HasValue)
-        {
-            query = query.Where(c => c.EndDate <= endTo.Value.Date);
-        }
-
-        var contracts = await query
-            .OrderByDescending(c => c.Id)
-            .ToListAsync();
+        var contracts = await _contracts.GetAllAsync(parsedStatus, startFrom, endTo, ct);
 
         ViewBag.CurrentStatus = status;
         ViewBag.StartFrom = startFrom?.ToString("yyyy-MM-dd");
         ViewBag.EndTo = endTo?.ToString("yyyy-MM-dd");
-        ViewBag.StatusOptions = Enum.GetNames(typeof(GLMS_Monolith.Models.Enums.ContractStatus));
+        ViewBag.StatusOptions = Enum.GetNames(typeof(ContractStatus));
 
         return View(contracts);
     }
 
-    // GET: Contracts/Details/5
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, CancellationToken ct)
     {
-        if (id == null) return NotFound();
-
-        var contract = await _context.Contracts
-            .Include(c => c.Client)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (contract == null) return NotFound();
-
-        return View(contract);
+        if (id is null) return NotFound();
+        var contract = await _contracts.GetByIdAsync(id.Value, ct);
+        return contract is null ? NotFound() : View(contract);
     }
 
-    // GET: Contracts/Create
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(CancellationToken ct)
     {
-        await PopulateClientDropdownAsync();
-        PopulateServiceLevelOptions();
-
-        return View(new Contract
+        await PopulateDropdownsAsync(ct);
+        return View(new ContractInputDto
         {
             StartDate = DateTime.Today,
-            EndDate = DateTime.Today.AddMonths(1)
+            EndDate = DateTime.Today.AddMonths(1),
+            Status = ContractStatus.Draft
         });
     }
 
-    // POST: Contracts/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        [Bind("ClientId,StartDate,EndDate,Status,ServiceLevel")] Contract contract,
-        IFormFile? signedAgreementFile)
+    public async Task<IActionResult> Create(ContractInputDto input, IFormFile? signedAgreementFile, CancellationToken ct)
     {
-        if (contract.EndDate < contract.StartDate)
+        if (signedAgreementFile is null || signedAgreementFile.Length == 0)
         {
-            ModelState.AddModelError(nameof(contract.EndDate), "End date cannot be before start date.");
+            ModelState.AddModelError("signedAgreementFile", "A signed agreement PDF is required.");
         }
-
-        if (signedAgreementFile == null || signedAgreementFile.Length == 0)
+        else if (!Path.GetExtension(signedAgreementFile.FileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
         {
-            ModelState.AddModelError("signedAgreementFile", "Signed Agreement PDF is required.");
-        }
-        else if (!_fileStorage.IsPdf(signedAgreementFile, out var error))
-        {
-            ModelState.AddModelError("signedAgreementFile", error);
-        }
-
-        if (!IsValidServiceLevel(contract.ServiceLevel))
-        {
-            ModelState.AddModelError(nameof(contract.ServiceLevel), "Please choose a valid service level.");
+            ModelState.AddModelError("signedAgreementFile", "Only .pdf files are allowed.");
         }
 
         if (!ModelState.IsValid)
         {
-            await PopulateClientDropdownAsync(contract.ClientId);
-            PopulateServiceLevelOptions(contract.ServiceLevel);
-            return View(contract);
+            await PopulateDropdownsAsync(ct, input.ClientId, input.ServiceLevel);
+            return View(input);
         }
 
-        var stored = await _fileStorage.SaveContractAgreementAsync(signedAgreementFile!);
-        contract.SignedAgreementFileName = stored.OriginalFileName;
-        contract.SignedAgreementStoredPath = stored.StoredRelativePath;
-        contract.SignedAgreementContentType = stored.ContentType;
-        contract.SignedAgreementUploadedAt = stored.UploadedAtUtc;
-
-        _context.Add(contract);
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        try
+        {
+            var created = await _contracts.CreateAsync(input, ct);
+            await UploadAsync(created.Id, signedAgreementFile!, ct);
+            return RedirectToAction(nameof(Index));
+        }
+        catch (ApiValidationException ex)
+        {
+            ModelState.AddApiErrors(ex);
+            await PopulateDropdownsAsync(ct, input.ClientId, input.ServiceLevel);
+            return View(input);
+        }
     }
 
-    // GET: Contracts/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, CancellationToken ct)
     {
-        if (id == null) return NotFound();
+        if (id is null) return NotFound();
+        var contract = await _contracts.GetByIdAsync(id.Value, ct);
+        if (contract is null) return NotFound();
 
-        var contract = await _context.Contracts.FindAsync(id);
-        if (contract == null) return NotFound();
+        await PopulateDropdownsAsync(ct, contract.ClientId, contract.ServiceLevel);
+        ViewBag.Id = contract.Id;
+        ViewBag.CurrentFileName = contract.SignedAgreementFileName;
+        ViewBag.HasFile = !string.IsNullOrWhiteSpace(contract.SignedAgreementStoredPath);
 
-        await PopulateClientDropdownAsync(contract.ClientId);
-        PopulateServiceLevelOptions(contract.ServiceLevel);
-        return View(contract);
+        return View(new ContractInputDto
+        {
+            ClientId = contract.ClientId,
+            StartDate = contract.StartDate,
+            EndDate = contract.EndDate,
+            Status = contract.Status,
+            ServiceLevel = contract.ServiceLevel
+        });
     }
 
-    // POST: Contracts/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int id,
-        [Bind("Id,ClientId,StartDate,EndDate,Status,ServiceLevel")] Contract input,
-        IFormFile? signedAgreementFile,
-        bool removeExistingFile = false)
+    public async Task<IActionResult> Edit(int id, ContractInputDto input, IFormFile? signedAgreementFile, CancellationToken ct)
     {
-        if (id != input.Id) return NotFound();
-
-        var contract = await _context.Contracts.FindAsync(id);
-        if (contract == null) return NotFound();
-
-        var previousStatus = contract.Status;
-
-        if (input.EndDate < input.StartDate)
+        if (signedAgreementFile is not null && signedAgreementFile.Length > 0 &&
+            !Path.GetExtension(signedAgreementFile.FileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
         {
-            ModelState.AddModelError(nameof(input.EndDate), "End date cannot be before start date.");
-        }
-
-        if (!_workflowService.CanTransitionStatus(contract.Status, input.Status, out var transitionReason))
-        {
-            ModelState.AddModelError(nameof(input.Status), transitionReason);
-        }
-
-        if (signedAgreementFile != null && !_fileStorage.IsPdf(signedAgreementFile, out var error))
-        {
-            ModelState.AddModelError("signedAgreementFile", error);
-        }
-
-        if (!IsValidServiceLevel(input.ServiceLevel))
-        {
-            ModelState.AddModelError(nameof(input.ServiceLevel), "Please choose a valid service level.");
+            ModelState.AddModelError("signedAgreementFile", "Only .pdf files are allowed.");
         }
 
         if (!ModelState.IsValid)
         {
-            contract.ClientId = input.ClientId;
-            contract.StartDate = input.StartDate;
-            contract.EndDate = input.EndDate;
-            contract.Status = input.Status;
-            contract.ServiceLevel = input.ServiceLevel;
-
-            await PopulateClientDropdownAsync(input.ClientId);
-            PopulateServiceLevelOptions(input.ServiceLevel);
-            return View(contract);
+            await PopulateDropdownsAsync(ct, input.ClientId, input.ServiceLevel);
+            ViewBag.Id = id;
+            return View(input);
         }
 
-        contract.ClientId = input.ClientId;
-        contract.StartDate = input.StartDate;
-        contract.EndDate = input.EndDate;
-        contract.Status = input.Status;
-        contract.ServiceLevel = input.ServiceLevel;
-
-        if (removeExistingFile)
+        try
         {
-            _fileStorage.DeleteIfExists(contract.SignedAgreementStoredPath);
-            contract.SignedAgreementFileName = null;
-            contract.SignedAgreementStoredPath = null;
-            contract.SignedAgreementContentType = null;
-            contract.SignedAgreementUploadedAt = null;
-        }
+            await _contracts.UpdateAsync(id, input, ct);
 
-        if (signedAgreementFile != null && signedAgreementFile.Length > 0)
+            if (signedAgreementFile is not null && signedAgreementFile.Length > 0)
+            {
+                await UploadAsync(id, signedAgreementFile, ct);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (ApiValidationException ex)
         {
-            _fileStorage.DeleteIfExists(contract.SignedAgreementStoredPath);
-
-            var stored = await _fileStorage.SaveContractAgreementAsync(signedAgreementFile);
-            contract.SignedAgreementFileName = stored.OriginalFileName;
-            contract.SignedAgreementStoredPath = stored.StoredRelativePath;
-            contract.SignedAgreementContentType = stored.ContentType;
-            contract.SignedAgreementUploadedAt = stored.UploadedAtUtc;
+            ModelState.AddApiErrors(ex);
+            await PopulateDropdownsAsync(ct, input.ClientId, input.ServiceLevel);
+            ViewBag.Id = id;
+            return View(input);
         }
-
-        await _context.SaveChangesAsync();
-
-        if (previousStatus != contract.Status)
-        {
-            _workflowService.NotifyStatusChanged(contract.Id, previousStatus, contract.Status);
-        }
-
-        return RedirectToAction(nameof(Index));
     }
 
-    // GET: Contracts/DownloadAgreement/5
-    [HttpGet]
-    public async Task<IActionResult> DownloadAgreement(int id)
+    public async Task<IActionResult> Delete(int? id, CancellationToken ct)
     {
-        var contract = await _context.Contracts.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
-        if (contract == null || string.IsNullOrWhiteSpace(contract.SignedAgreementStoredPath))
-        {
-            return NotFound("Agreement file not found.");
-        }
-
-        var fullPath = _fileStorage.GetFullPath(contract.SignedAgreementStoredPath);
-        if (!System.IO.File.Exists(fullPath))
-        {
-            return NotFound("File missing on server.");
-        }
-
-        var downloadName = string.IsNullOrWhiteSpace(contract.SignedAgreementFileName)
-            ? $"contract-{contract.Id}.pdf"
-            : contract.SignedAgreementFileName;
-
-        return PhysicalFile(fullPath, "application/pdf", downloadName);
+        if (id is null) return NotFound();
+        var contract = await _contracts.GetByIdAsync(id.Value, ct);
+        return contract is null ? NotFound() : View(contract);
     }
 
-    // GET: Contracts/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null) return NotFound();
-
-        var contract = await _context.Contracts
-            .Include(c => c.Client)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (contract == null) return NotFound();
-
-        return View(contract);
-    }
-
-    // POST: Contracts/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct)
     {
-        var contract = await _context.Contracts.FindAsync(id);
-        if (contract != null)
-        {
-            _fileStorage.DeleteIfExists(contract.SignedAgreementStoredPath);
-            _context.Contracts.Remove(contract);
-            await _context.SaveChangesAsync();
-        }
-
+        await _contracts.DeleteAsync(id, ct);
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task PopulateClientDropdownAsync(object? selectedClient = null)
+    public async Task<IActionResult> DownloadAgreement(int id, CancellationToken ct)
     {
-        var clients = await _context.Clients
-            .AsNoTracking()
-            .OrderBy(c => c.Name)
-            .ToListAsync();
+        var download = await _contracts.DownloadAgreementAsync(id, ct);
+        if (download is null) return NotFound("Agreement file not found.");
+        return File(download.Content, download.ContentType, download.FileName);
+    }
 
-        ViewData["ClientId"] = new SelectList(clients, "Id", "Name", selectedClient);
+    private async Task UploadAsync(int contractId, IFormFile file, CancellationToken ct)
+    {
+        await using var stream = file.OpenReadStream();
+        await _contracts.UploadAgreementAsync(contractId, stream, file.FileName, file.ContentType, ct);
+    }
+
+    private async Task PopulateDropdownsAsync(CancellationToken ct, object? selectedClient = null, string? selectedLevel = null)
+    {
+        var clients = await _clients.GetAllAsync(ct);
+        ViewBag.ClientId = new SelectList(clients, "Id", "Name", selectedClient);
+        ViewBag.ServiceLevels = new SelectList(ServiceLevels.All, selectedLevel);
     }
 }

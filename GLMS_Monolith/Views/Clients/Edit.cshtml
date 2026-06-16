@@ -1,4 +1,4 @@
-@model GLMS_Monolith.Models.Client
+@model GLMS.Shared.Dtos.ClientInputDto
 
 @{
     ViewData["Title"] = "Edit Client";
@@ -12,9 +12,8 @@
 </div>
 
 <div class="detail-card">
-    <form asp-action="Edit">
+    <form asp-action="Edit" asp-route-id="@ViewBag.Id">
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-        <input type="hidden" asp-for="Id" />
 
         <div class="form-group mb-3">
             <label asp-for="Name" class="form-label fw-semibold"></label>

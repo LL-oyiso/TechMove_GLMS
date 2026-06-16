@@ -1,5 +1,5 @@
-@model GLMS_Monolith.Models.ServiceRequest
-@using GLMS_Monolith.Models.Enums
+@model GLMS.Shared.Dtos.ServiceRequestDto
+@using GLMS.Shared.Enums
 
 @{
     ViewData["Title"] = "Service Request Details";
@@ -16,7 +16,7 @@
     <dl class="detail-grid">
         <div class="detail-row">
             <dt>Contract</dt>
-            <dd>#@Model.ContractId — @(Model.Contract?.Client?.Name ?? "-")</dd>
+            <dd>#@Model.ContractId — @(Model.ClientName ?? "-")</dd>
         </div>
         <div class="detail-row">
             <dt>Description</dt>

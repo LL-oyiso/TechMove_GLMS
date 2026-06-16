@@ -96,7 +96,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Note: HTTPS redirection is intentionally not used. The API is consumed server-to-server
+// by the MVC frontend over HTTP (and inside Docker over the internal network), where TLS
+// is handled at the edge rather than between internal services.
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

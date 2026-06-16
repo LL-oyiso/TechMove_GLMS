@@ -1,5 +1,5 @@
-@model GLMS_Monolith.Models.Contract
-@using GLMS_Monolith.Models.Enums
+@model GLMS.Shared.Dtos.ContractInputDto
+@using GLMS.Shared.Enums
 
 @{
     ViewData["Title"] = "Edit Contract";
@@ -10,9 +10,8 @@
 
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Edit" enctype="multipart/form-data">
+        <form asp-action="Edit" asp-route-id="@ViewBag.Id" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
 
             <div class="form-group mb-2">
                 <label asp-for="ClientId" class="control-label"></label>
@@ -51,19 +50,14 @@
                 <span class="text-danger">@Html.ValidationMessage("signedAgreementFile")</span>
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(Model.SignedAgreementStoredPath))
+            @if (ViewBag.HasFile == true)
             {
                 <div class="form-group mb-3">
-                    <p>
+                    <p class="mb-0">
                         Current file:
-                        <a asp-action="DownloadAgreement" asp-route-id="@Model.Id">@Model.SignedAgreementFileName</a>
+                        <a asp-action="DownloadAgreement" asp-route-id="@ViewBag.Id">@ViewBag.CurrentFileName</a>
                     </p>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="removeExistingFile" value="true" id="removeExistingFile" />
-                        <label class="form-check-label" for="removeExistingFile">
-                            Remove current file
-                        </label>
-                    </div>
+                    <small class="text-muted">Uploading a new file will replace the current one.</small>
                 </div>
             }
 

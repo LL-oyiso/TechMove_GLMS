@@ -1,62 +1,49 @@
-using GLMS_Monolith.Data;
-using GLMS_Monolith.Models;
-using GLMS_Monolith.Models.Enums;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using GLMS.Shared.Enums;
+using GLMS_Monolith.Models;
+using GLMS_Monolith.Services.Api;
+using Microsoft.AspNetCore.Mvc;
 
-namespace GLMS_Monolith.Controllers
+namespace GLMS_Monolith.Controllers;
+
+public class HomeController : Controller
 {
-    public class HomeController : Controller
+    private readonly IContractsApi _contracts;
+    private readonly IServiceRequestsApi _serviceRequests;
+
+    public HomeController(IContractsApi contracts, IServiceRequestsApi serviceRequests)
     {
-        private readonly ILogger<HomeController> _logger;
-        private readonly GlmsDbContext _context;
-
-        public HomeController(ILogger<HomeController> logger, GlmsDbContext context)
-        {
-            _logger = logger;
-            _context = context;
-        }
-
-        public async Task<IActionResult> Index()
-        {
-            ViewBag.ActiveContracts = await _context.Contracts
-                .CountAsync(c => c.Status == ContractStatus.Active);
-
-            ViewBag.OnHoldContracts = await _context.Contracts
-                .CountAsync(c => c.Status == ContractStatus.OnHold);
-
-            ViewBag.RequestsToday = await _context.ServiceRequests
-                .CountAsync(r => r.CreatedAt.Date == DateTime.UtcNow.Date);
-
-            ViewBag.TotalRequests = await _context.ServiceRequests.CountAsync();
-
-            ViewBag.AttentionContracts = await _context.Contracts
-                .Include(c => c.Client)
-                .Where(c => c.Status == ContractStatus.Expired || c.Status == ContractStatus.OnHold)
-                .OrderByDescending(c => c.Id)
-                .Take(5)
-                .ToListAsync();
-
-            ViewBag.RecentRequests = await _context.ServiceRequests
-                .Include(sr => sr.Contract!)
-                    .ThenInclude(c => c.Client)
-                .OrderByDescending(sr => sr.CreatedAt)
-                .Take(5)
-                .ToListAsync();
-
-            return View();
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
+        _contracts = contracts;
+        _serviceRequests = serviceRequests;
     }
+
+    public async Task<IActionResult> Index(CancellationToken ct)
+    {
+        var contracts = await _contracts.GetAllAsync(null, null, null, ct);
+        var requests = await _serviceRequests.GetAllAsync(ct);
+
+        ViewBag.ActiveContracts = contracts.Count(c => c.Status == ContractStatus.Active);
+        ViewBag.OnHoldContracts = contracts.Count(c => c.Status == ContractStatus.OnHold);
+        ViewBag.RequestsToday = requests.Count(r => r.CreatedAt.Date == DateTime.UtcNow.Date);
+        ViewBag.TotalRequests = requests.Count;
+
+        ViewBag.AttentionContracts = contracts
+            .Where(c => c.Status == ContractStatus.Expired || c.Status == ContractStatus.OnHold)
+            .OrderByDescending(c => c.Id)
+            .Take(5)
+            .ToList();
+
+        ViewBag.RecentRequests = requests
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(5)
+            .ToList();
+
+        return View();
+    }
+
+    public IActionResult Privacy() => View();
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error() =>
+        View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
 }

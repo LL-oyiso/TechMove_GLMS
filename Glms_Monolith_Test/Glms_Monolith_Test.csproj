@@ -22,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GLMS_Monolith\GLMS_Monolith.csproj" />
+    <ProjectReference Include="..\GLMS.Api\GLMS.Api.csproj" />
+    <ProjectReference Include="..\GLMS.Shared\GLMS.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

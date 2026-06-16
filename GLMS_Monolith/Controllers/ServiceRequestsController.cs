@@ -1,234 +1,159 @@
-using GLMS_Monolith.Data;
-using GLMS_Monolith.Models;
-using GLMS_Monolith.Models.Enums;
-using GLMS_Monolith.Services;
+using GLMS.Shared.Dtos;
+using GLMS.Shared.Enums;
+using GLMS_Monolith.Services.Api;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+
+namespace GLMS_Monolith.Controllers;
 
 public class ServiceRequestsController : Controller
 {
-    private readonly GlmsDbContext _context;
-    private readonly IContractWorkflowService _workflowService;
-    private readonly ICurrencyConversionService _currencyConversionService;
+    private readonly IServiceRequestsApi _serviceRequests;
+    private readonly IContractsApi _contracts;
 
-    public ServiceRequestsController(
-        GlmsDbContext context,
-        IContractWorkflowService workflowService,
-        ICurrencyConversionService currencyConversionService)
+    public ServiceRequestsController(IServiceRequestsApi serviceRequests, IContractsApi contracts)
     {
-        _context = context;
-        _workflowService = workflowService;
-        _currencyConversionService = currencyConversionService;
+        _serviceRequests = serviceRequests;
+        _contracts = contracts;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(CancellationToken ct)
     {
-        var items = await _context.ServiceRequests
-            .Include(sr => sr.Contract!)
-            .ThenInclude(c => c.Client)
-            .AsNoTracking()
-            .OrderByDescending(sr => sr.CreatedAt)
-            .ToListAsync();
-
+        var items = await _serviceRequests.GetAllAsync(ct);
         return View(items);
     }
 
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, CancellationToken ct)
     {
-        if (id == null) return NotFound();
-
-        var item = await _context.ServiceRequests
-            .Include(sr => sr.Contract!)
-            .ThenInclude(c => c.Client)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (item == null) return NotFound();
-
-        return View(item);
+        if (id is null) return NotFound();
+        var item = await _serviceRequests.GetByIdAsync(id.Value, ct);
+        return item is null ? NotFound() : View(item);
     }
 
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(CancellationToken ct)
     {
-        await PopulateContractDropdownAsync();
-        return View(new ServiceRequest { Status = ServiceRequestStatus.New });
+        await PopulateContractDropdownAsync(ct);
+        return View(new ServiceRequestInputDto { Status = ServiceRequestStatus.New });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(ServiceRequestInputDto input, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            await PopulateContractDropdownAsync(ct, input.ContractId);
+            return View(input);
+        }
+
+        try
+        {
+            await _serviceRequests.CreateAsync(input, ct);
+            return RedirectToAction(nameof(Index));
+        }
+        catch (ApiValidationException ex)
+        {
+            ModelState.AddApiErrors(ex);
+            await PopulateContractDropdownAsync(ct, input.ContractId);
+            return View(input);
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            await PopulateContractDropdownAsync(ct, input.ContractId);
+            return View(input);
+        }
+    }
+
+    public async Task<IActionResult> Edit(int? id, CancellationToken ct)
+    {
+        if (id is null) return NotFound();
+        var item = await _serviceRequests.GetByIdAsync(id.Value, ct);
+        if (item is null) return NotFound();
+
+        await PopulateContractDropdownAsync(ct, item.ContractId);
+        ViewBag.Id = item.Id;
+        return View(new ServiceRequestInputDto
+        {
+            ContractId = item.ContractId,
+            Description = item.Description,
+            CostUsd = item.CostUsd,
+            Status = item.Status
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, ServiceRequestInputDto input, CancellationToken ct)
+    {
+        ViewBag.Id = id;
+        if (!ModelState.IsValid)
+        {
+            await PopulateContractDropdownAsync(ct, input.ContractId);
+            return View(input);
+        }
+
+        try
+        {
+            await _serviceRequests.UpdateAsync(id, input, ct);
+            return RedirectToAction(nameof(Index));
+        }
+        catch (ApiValidationException ex)
+        {
+            ModelState.AddApiErrors(ex);
+            await PopulateContractDropdownAsync(ct, input.ContractId);
+            return View(input);
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            await PopulateContractDropdownAsync(ct, input.ContractId);
+            return View(input);
+        }
+    }
+
+    public async Task<IActionResult> Delete(int? id, CancellationToken ct)
+    {
+        if (id is null) return NotFound();
+        var item = await _serviceRequests.GetByIdAsync(id.Value, ct);
+        return item is null ? NotFound() : View(item);
+    }
+
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct)
+    {
+        await _serviceRequests.DeleteAsync(id, ct);
+        return RedirectToAction(nameof(Index));
+    }
+
+    // Proxies the live FX estimate from the API for the Create page's JavaScript.
     [HttpGet]
-    public async Task<IActionResult> GetZarEstimate(decimal usdAmount)
+    public async Task<IActionResult> GetZarEstimate(decimal usdAmount, CancellationToken ct)
     {
         if (usdAmount <= 0)
         {
             return BadRequest(new { message = "USD amount must be greater than zero." });
         }
 
-        try
-        {
-            var conversion = await _currencyConversionService.ConvertUsdToZarAsync(usdAmount);
-            return Json(new
-            {
-                costZar = conversion.ZarAmount,
-                rateUsed = conversion.RateUsed
-            });
-        }
-        catch (Exception)
+        var estimate = await _serviceRequests.GetEstimateAsync(usdAmount, ct);
+        if (estimate is null)
         {
             return StatusCode(503, new { message = "FX service currently unavailable." });
         }
+
+        return Json(new { costZar = estimate.CostZar, rateUsed = estimate.RateUsed });
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("ContractId,Description,CostUsd,Status")] ServiceRequest input)
+    private async Task PopulateContractDropdownAsync(CancellationToken ct, object? selectedContract = null)
     {
-        var contract = await _context.Contracts
-            .Include(c => c.Client)
-            .FirstOrDefaultAsync(c => c.Id == input.ContractId);
-
-        if (contract == null)
+        var contracts = await _contracts.GetAllAsync(null, null, null, ct);
+        var options = contracts.Select(c => new
         {
-            ModelState.AddModelError(nameof(input.ContractId), "Selected contract was not found.");
-        }
-        else if (!_workflowService.CanCreateServiceRequest(contract, out var reason))
-        {
-            ModelState.AddModelError(nameof(input.ContractId), reason);
-        }
+            c.Id,
+            Label = $"#{c.Id} - {c.Status} - {c.ClientName ?? "Client"}"
+        });
 
-        if (!ModelState.IsValid)
-        {
-            await PopulateContractDropdownAsync(input.ContractId);
-            return View(input);
-        }
-
-        try
-        {
-            var conversion = await _currencyConversionService.ConvertUsdToZarAsync(input.CostUsd);
-            input.CostZar = conversion.ZarAmount;
-            input.ExchangeRateUsed = conversion.RateUsed;
-            input.CreatedAt = DateTime.UtcNow;
-
-            _context.ServiceRequests.Add(input);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
-        }
-        catch (Exception)
-        {
-            ModelState.AddModelError(string.Empty, "Currency service is unavailable right now. Please retry.");
-            await PopulateContractDropdownAsync(input.ContractId);
-            return View(input);
-        }
-    }
-
-    public async Task<IActionResult> Edit(int? id)
-    {
-        if (id == null) return NotFound();
-
-        var item = await _context.ServiceRequests.FindAsync(id);
-        if (item == null) return NotFound();
-
-        await PopulateContractDropdownAsync(item.ContractId);
-        return View(item);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,ContractId,Description,CostUsd,Status")] ServiceRequest input)
-    {
-        if (id != input.Id) return NotFound();
-
-        var existing = await _context.ServiceRequests.FindAsync(id);
-        if (existing == null) return NotFound();
-
-        var contract = await _context.Contracts.FirstOrDefaultAsync(c => c.Id == input.ContractId);
-        if (contract == null)
-        {
-            ModelState.AddModelError(nameof(input.ContractId), "Selected contract was not found.");
-        }
-        else if (!_workflowService.CanCreateServiceRequest(contract, out var reason))
-        {
-            ModelState.AddModelError(nameof(input.ContractId), reason);
-        }
-
-        if (!ModelState.IsValid)
-        {
-            await PopulateContractDropdownAsync(input.ContractId);
-            existing.ContractId = input.ContractId;
-            existing.Description = input.Description;
-            existing.CostUsd = input.CostUsd;
-            existing.Status = input.Status;
-            return View(existing);
-        }
-
-        try
-        {
-            var conversion = await _currencyConversionService.ConvertUsdToZarAsync(input.CostUsd);
-
-            existing.ContractId = input.ContractId;
-            existing.Description = input.Description;
-            existing.CostUsd = input.CostUsd;
-            existing.CostZar = conversion.ZarAmount;
-            existing.ExchangeRateUsed = conversion.RateUsed;
-            existing.Status = input.Status;
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-        catch (Exception)
-        {
-            ModelState.AddModelError(string.Empty, "Currency service is unavailable right now. Please retry.");
-            await PopulateContractDropdownAsync(input.ContractId);
-            existing.ContractId = input.ContractId;
-            existing.Description = input.Description;
-            existing.CostUsd = input.CostUsd;
-            existing.Status = input.Status;
-            return View(existing);
-        }
-    }
-
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null) return NotFound();
-
-        var item = await _context.ServiceRequests
-            .Include(sr => sr.Contract!)
-            .ThenInclude(c => c.Client)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (item == null) return NotFound();
-
-        return View(item);
-    }
-
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
-    {
-        var item = await _context.ServiceRequests.FindAsync(id);
-        if (item != null)
-        {
-            _context.ServiceRequests.Remove(item);
-            await _context.SaveChangesAsync();
-        }
-
-        return RedirectToAction(nameof(Index));
-    }
-
-    private async Task PopulateContractDropdownAsync(object? selectedContract = null)
-    {
-        var contracts = await _context.Contracts
-            .Include(c => c.Client)
-            .AsNoTracking()
-            .OrderByDescending(c => c.Id)
-            .Select(c => new
-            {
-                c.Id,
-                Label = $"#{c.Id} - {c.Status} - {(c.Client != null ? c.Client.Name : "Client")}"
-            })
-            .ToListAsync();
-
-        ViewData["ContractId"] = new SelectList(contracts, "Id", "Label", selectedContract);
+        ViewData["ContractId"] = new SelectList(options, "Id", "Label", selectedContract);
     }
 }

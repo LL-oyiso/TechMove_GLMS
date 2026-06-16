@@ -1,4 +1,4 @@
-@model GLMS_Monolith.Models.ServiceRequest
+@model GLMS.Shared.Dtos.ServiceRequestDto
 
 @{
     ViewData["Title"] = "Delete Service Request";
@@ -17,7 +17,7 @@
     <dl class="detail-grid mb-3">
         <div class="detail-row">
             <dt>Contract</dt>
-            <dd>#@Model.ContractId — @(Model.Contract?.Client?.Name ?? "-")</dd>
+            <dd>#@Model.ContractId — @(Model.ClientName ?? "-")</dd>
         </div>
         <div class="detail-row">
             <dt>Description</dt>

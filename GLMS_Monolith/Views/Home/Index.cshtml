@@ -1,10 +1,10 @@
-@using GLMS_Monolith.Models
-@using GLMS_Monolith.Models.Enums
+@using GLMS.Shared.Dtos
+@using GLMS.Shared.Enums
 
 @{
     ViewData["Title"] = "Dashboard";
-    var attentionContracts = ViewBag.AttentionContracts as List<Contract> ?? new List<Contract>();
-    var recentRequests = ViewBag.RecentRequests as List<ServiceRequest> ?? new List<ServiceRequest>();
+    var attentionContracts = ViewBag.AttentionContracts as List<ContractDto> ?? new List<ContractDto>();
+    var recentRequests = ViewBag.RecentRequests as List<ServiceRequestDto> ?? new List<ServiceRequestDto>();
 }
 
 <section class="dash-hero">
@@ -66,7 +66,7 @@
                     {
                         <tr>
                             <td>@c.Id</td>
-                            <td>@(c.Client?.Name ?? "-")</td>
+                            <td>@(c.ClientName ?? "-")</td>
                             <td>@c.ServiceLevel</td>
                             <td><span class="status-pill status-@c.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(c.Status)</span></td>
                             <td>@c.EndDate.ToString("yyyy-MM-dd")</td>
@@ -103,7 +103,7 @@
                     {
                         <tr>
                             <td>@r.Id</td>
-                            <td>@(r.Contract?.Client?.Name ?? "-")</td>
+                            <td>@(r.ClientName ?? "-")</td>
                             <td>@(r.Description.Length > 40 ? r.Description[..40] + "…" : r.Description)</td>
                             <td>@r.CostUsd.ToString("N2")</td>
                             <td><span class="status-pill status-@r.Status.ToString().ToLowerInvariant()">@StatusHelper.Label(r.Status)</span></td>
