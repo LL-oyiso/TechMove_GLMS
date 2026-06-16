@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>glms-api-7c2f1e90-3a4b-4d2c-9b8e-1f6a2d5c4e30</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

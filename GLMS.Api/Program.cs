@@ -1,14 +1,41 @@
+using System.Text;
 using GLMS.Api.Data;
 using GLMS.Api.Repositories;
 using GLMS.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // MVC controllers + JSON
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// Swagger with JWT bearer support (adds the "Authorize" padlock button).
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Paste your JWT here (the 'Bearer ' prefix is added automatically)."
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Database (connection string can be overridden by environment variables in Docker)
 builder.Services.AddDbContext<GlmsDbContext>(options =>
@@ -25,6 +52,10 @@ builder.Services.AddScoped<IContractWorkflowService, ContractWorkflowService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
+// Auth services
+builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
+
 // Adapter: external ExchangeRate-API via typed HttpClient
 builder.Services.AddHttpClient<IExchangeRateProvider, ExchangeRateApiProvider>(client =>
 {
@@ -32,10 +63,32 @@ builder.Services.AddHttpClient<IExchangeRateProvider, ExchangeRateApiProvider>(c
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// JWT bearer authentication
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
-// Apply migrations on startup (with a short retry so it tolerates SQL Server warming up in Docker).
+// Apply migrations (with retry for SQL Server warming up in Docker) then seed the admin user.
 ApplyMigrations(app);
+await DbSeeder.SeedAdminAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {
@@ -44,6 +97,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

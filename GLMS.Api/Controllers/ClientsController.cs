@@ -1,6 +1,7 @@
 using GLMS.Api.Mapping;
 using GLMS.Api.Repositories;
 using GLMS.Shared.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GLMS.Api.Controllers;
@@ -8,6 +9,7 @@ namespace GLMS.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class ClientsController : ControllerBase
 {
     private readonly IClientRepository _clients;

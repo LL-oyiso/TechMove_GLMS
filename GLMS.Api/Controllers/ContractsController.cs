@@ -5,6 +5,7 @@ using GLMS.Api.Services;
 using GLMS.Shared;
 using GLMS.Shared.Dtos;
 using GLMS.Shared.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GLMS.Api.Controllers;
@@ -12,6 +13,7 @@ namespace GLMS.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class ContractsController : ControllerBase
 {
     private readonly IContractRepository _contracts;

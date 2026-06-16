@@ -3,6 +3,7 @@ using GLMS.Api.Models;
 using GLMS.Api.Repositories;
 using GLMS.Api.Services;
 using GLMS.Shared.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GLMS.Api.Controllers;
@@ -10,6 +11,7 @@ namespace GLMS.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class ServiceRequestsController : ControllerBase
 {
     private readonly IServiceRequestRepository _serviceRequests;
