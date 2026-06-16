@@ -23,4 +23,8 @@
     <Folder Include="NewFolder\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GLMS.Shared\GLMS.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -18,10 +18,10 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore
-        run: dotnet restore ./GLMS_Monolith.slnx
+        run: dotnet restore ./GLMS_Monolith.sln
 
       - name: Build
-        run: dotnet build ./GLMS_Monolith.slnx --configuration Release --no-restore
+        run: dotnet build ./GLMS_Monolith.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test ./GLMS_Monolith.slnx --configuration Release --no-restore --verbosity normal
+        run: dotnet test ./GLMS_Monolith.sln --configuration Release --no-restore --verbosity normal

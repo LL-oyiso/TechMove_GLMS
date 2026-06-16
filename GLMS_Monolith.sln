@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLMS.Api", "GLMS.Api\GLMS.Api.csproj", "{F491CC0A-DB39-42DA-89EF-3B249E9BFF5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLMS.Shared", "GLMS.Shared\GLMS.Shared.csproj", "{42200513-4A62-40E0-A903-A80B28F0B84A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLMS_Monolith", "GLMS_Monolith\GLMS_Monolith.csproj", "{5BA2FA02-7065-4573-B543-4D841105BA4B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Glms_Monolith_Test", "Glms_Monolith_Test\Glms_Monolith_Test.csproj", "{7DA96B44-7DF5-4AB3-8B1F-15F6B7241D88}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F491CC0A-DB39-42DA-89EF-3B249E9BFF5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F491CC0A-DB39-42DA-89EF-3B249E9BFF5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F491CC0A-DB39-42DA-89EF-3B249E9BFF5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F491CC0A-DB39-42DA-89EF-3B249E9BFF5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42200513-4A62-40E0-A903-A80B28F0B84A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42200513-4A62-40E0-A903-A80B28F0B84A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42200513-4A62-40E0-A903-A80B28F0B84A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42200513-4A62-40E0-A903-A80B28F0B84A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BA2FA02-7065-4573-B543-4D841105BA4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BA2FA02-7065-4573-B543-4D841105BA4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BA2FA02-7065-4573-B543-4D841105BA4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BA2FA02-7065-4573-B543-4D841105BA4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DA96B44-7DF5-4AB3-8B1F-15F6B7241D88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DA96B44-7DF5-4AB3-8B1F-15F6B7241D88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DA96B44-7DF5-4AB3-8B1F-15F6B7241D88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DA96B44-7DF5-4AB3-8B1F-15F6B7241D88}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
