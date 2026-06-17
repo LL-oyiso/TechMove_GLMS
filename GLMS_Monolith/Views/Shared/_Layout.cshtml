@@ -19,16 +19,28 @@
                 </button>
                 <div class="navbar-collapse collapse d-lg-flex justify-content-between">
                     <ul class="navbar-nav gap-lg-2">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Clients" asp-action="Index">Clients</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Contracts" asp-action="Index">Contracts</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="ServiceRequests" asp-action="Index">Service Requests</a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Clients" asp-action="Index">Clients</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Contracts" asp-action="Index">Contracts</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="ServiceRequests" asp-action="Index">Service Requests</a>
+                            </li>
+                        }
                     </ul>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="nav-link">Signed in as <strong>@User.Identity!.Name</strong></span>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-light">Logout</button>
+                            </form>
+                        </div>
+                    }
                 </div>
             </div>
         </nav>

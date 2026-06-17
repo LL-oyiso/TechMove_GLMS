@@ -1,17 +1,36 @@
 using GLMS_Monolith.Filters;
 using GLMS_Monolith.Services.Api;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MVC + global API-exception handling.
+// MVC + global API-exception handling + "must be signed in" policy for every page.
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<ApiExceptionFilter>();
+
+    var requireAuth = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(requireAuth));
 });
 
 builder.Services.AddHttpContextAccessor();
 
-// Session is used to hold the signed-in user's JWT for outgoing API calls.
+// Cookie authentication gates the MVC pages (the JWT itself is held in session for API calls).
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/Login";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+
+// Session holds the signed-in user's JWT for outgoing API calls.
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(8);

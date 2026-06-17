@@ -17,6 +17,17 @@ body {
     color: #1f2937;
 }
 
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    padding-top: 3rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+}
+
 .app-navbar {
     background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 100%);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
