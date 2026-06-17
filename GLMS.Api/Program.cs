@@ -111,6 +111,14 @@ static void ApplyMigrations(WebApplication app)
     var db = scope.ServiceProvider.GetRequiredService<GlmsDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
+    // Integration tests swap in a non-relational (in-memory) provider, which does not support migrations.
+    if (!db.Database.IsRelational())
+    {
+        db.Database.EnsureCreated();
+        logger.LogInformation("In-memory database created (test environment).");
+        return;
+    }
+
     const int maxAttempts = 10;
     for (var attempt = 1; attempt <= maxAttempts; attempt++)
     {
