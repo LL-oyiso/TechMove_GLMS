@@ -45,6 +45,7 @@ builder.Services.AddDbContext<GlmsDbContext>(options =>
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
 builder.Services.AddScoped<IServiceRequestRepository, ServiceRequestRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Business-logic services (patterns moved to the backend)
 builder.Services.AddScoped<IContractStatusObserver, ContractAuditObserver>();   // Observer

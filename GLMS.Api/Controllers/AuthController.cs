@@ -1,9 +1,8 @@
-using GLMS.Api.Data;
+using GLMS.Api.Repositories;
 using GLMS.Api.Services;
 using GLMS.Shared.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GLMS.Api.Controllers;
 
@@ -12,13 +11,13 @@ namespace GLMS.Api.Controllers;
 [Produces("application/json")]
 public class AuthController : ControllerBase
 {
-    private readonly GlmsDbContext _context;
+    private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
 
-    public AuthController(GlmsDbContext context, IPasswordHasher passwordHasher, ITokenService tokenService)
+    public AuthController(IUserRepository users, IPasswordHasher passwordHasher, ITokenService tokenService)
     {
-        _context = context;
+        _users = users;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
     }
@@ -29,7 +28,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken ct)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username, ct);
+        var user = await _users.GetByUsernameAsync(request.Username, ct);
         if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized(new { message = "Invalid username or password." });
